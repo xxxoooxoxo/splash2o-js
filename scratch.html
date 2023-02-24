@@ -317,3 +317,289 @@
   })
   requestAnimationFrame(raf)
 </script>
+
+<!-- ///////////////////////////////////////////// -->
+<!-- <script defer>
+	// scroll window to top
+  window.scrollTo(0,0)
+  // define the viewer element
+	const element = document.getElementById("webgl");
+
+	// check if the viewer is inticialized
+	element.addEventListener("initialized", () => {
+  	
+    // register scrolltrigger plugin
+	  gsap.registerPlugin(ScrollTrigger);
+    // create constants
+    const viewer = element.viewer;
+    const manager = viewer.getManager();
+    const importer = manager.importer;
+    const camera = viewer.scene.activeCamera;
+    const position = camera.position;
+    const target = camera.target;
+    
+    const ssr = viewer.getPlugin(SSRPlugin)
+    const bloom = viewer.getPlugin(BloomPlugin)
+    const ssao = viewer.getPlugin(SSAOPlugin)
+    
+    ssr.passes.ssr.passObject.lowQualityFrames = 0
+    bloom.pass.passObject.bloomIterations = 2
+    ssao.passes.ssao.passObject.material.defines.NUM_SAMPLES = 4
+
+		// create the loader
+    importer.addEventListener("onProgress", (ev) => {
+      const progressRatio = ev.loaded / ev.total;
+      document.querySelector(".loader-progress").innerHTML =
+        `${Math.round(progressRatio) * 100} %`;
+    });
+		
+    // define the animation after loading complete
+    importer.addEventListener("onLoad", (ev) => {
+      gsap.to(".loader", {
+        y: "-100%",
+        duration: 1.5,
+        ease: "power4.inOut",
+        delay: 0.2, 
+        onComplete: startAnimation,
+      });
+    });
+  
+   function startAnimation() {
+       document.body.removeChild(document.querySelector(".loader"))
+      //viewer.getPlugin(DepthOfFieldPlugin).enabled = false;
+      viewer.scene.activeCamera.setCameraOptions({ controlsEnabled: false });
+
+      const tl = gsap.timeline({ default: { ease: "none" }});
+      tl
+      // First section
+      .to(position, {
+        x: -3,
+        y: 0.3,
+        z: 5.3,
+        scrollTrigger: {
+          trigger: ".section-2",
+          start: "top bottom",
+          end: "top top",
+          scrub: true,
+          //immediateRender: false,
+        },
+        onUpdate,
+      })
+      .to(target, {
+        x: -0.5,
+        y: -0.1,
+        z: 0.1,
+        scrollTrigger: {
+          trigger: ".section-2",
+          start: "top bottom",
+          end: "top top",
+          scrub: true,
+          //immediateRender: false,
+        },
+      })
+
+      // second section
+      .to(position, {
+        x: -1.7,
+        y: -0.25,
+        z: -4.6,
+        scrollTrigger: {
+          trigger: ".section-3",
+          start: "top bottom",
+          end: "top top",
+          scrub: true,
+          immediateRender: false,
+        },
+        onUpdate,
+      })
+      .to(target, {
+        x: -0.7,
+        y: -0.25,
+        z: -0.2,
+        scrollTrigger: {
+          trigger: ".section-3",
+          start: "top bottom",
+          end: "top top",
+          scrub: true,
+          immediateRender: false,
+        },
+      })
+      
+		// third section
+		.to(position, {
+        x: -2.4,
+        y: 6.5,
+        z: -0.08,
+        scrollTrigger: {
+          trigger: ".section-4",
+          start: "top bottom",
+          end: "top top",
+          scrub: true,
+          immediateRender: false,
+        },
+        onUpdate,
+      })
+      .to(target, {
+        x: -0.25,
+        y: -0.25,
+        z: -0.09,
+        scrollTrigger: {
+          trigger: ".section-4",
+          start: "top bottom",
+          end: "top top",
+          scrub: true,
+          immediateRender: false,
+        },
+      })
+      	
+      // fourfh section
+		 .to(position, {
+        x: -0.01,
+        y: 0.6,
+        z: 3.8,
+        scrollTrigger: {
+          trigger: ".section-5",
+          start: "top bottom",
+          end: "top top",
+          scrub: true,
+          immediateRender: false,
+        },
+        onUpdate,
+      })
+      .to(target, {
+        x: -0.003,
+        y: -0.4,
+        z: 0.41,
+        scrollTrigger: {
+          trigger: ".section-5",
+          start: "top bottom",
+          end: "top top",
+          scrub: true,
+          immediateRender: false,
+        },
+      })
+     
+    viewer.addEventListener("preFrame", () => {
+    // console.log(ring.rotation)
+    if (needsUpdate) {
+      camera.positionTargetUpdated(true);
+      camera.positionUpdated(true)
+      // camera.targetUpdated(true)
+      needsUpdate = false;
+    }
+    });
+     
+    let needsUpdate = true;
+
+    function onUpdate() {
+      needsUpdate = true;
+      viewer.setDirty();
+    }
+     // explore
+     document.querySelector(".btn-explore").addEventListener( "click" , () =>{
+        element.style.pointerEvents = "all";
+       	document.body.style.pointerEvents = "none"
+ 
+        gsap.to(position, {
+          z: 5,
+          x: -5,
+          duration: 2.5,
+          ease: "power4.inOut",
+          onUpdate
+      	});
+       	gsap.to(target, {
+          z: 0,
+          duration: 2.5,
+          ease: "power4.inOut",
+          onComplete: turnOffScrolling
+      	});
+     })
+     
+     // To turn on and off the scroll, and communicate with the Lenis library / module,
+     // we're using custom events.
+     const scrollOn = new Event('scrollOn');
+     const scrollOff = new Event('scrollOff');
+     
+     function turnOffScrolling(){
+       viewer.scene.activeCamera.setCameraOptions({ controlsEnabled: true });
+       document.querySelector(".btn-exit").style.pointerEvents = "all"
+       document.body.style.cursor = "grab"
+       document.body.style.overflow = "hidden"
+       document.body.dispatchEvent(scrollOff);
+     }
+     
+     document.querySelector(".btn-exit").addEventListener( "click" , () =>{
+     	 element.style.pointerEvents = "none";
+       document.body.style.pointerEvents = "all"
+       document.body.style.cursor = "default"
+       document.body.style.overflow = "initial"
+       document.body.dispatchEvent(scrollOn);
+       viewer.scene.activeCamera.setCameraOptions({ controlsEnabled: false });
+       
+       gsap.to(position, {
+          x: -0.01,
+        	y: 0.6,
+        	z: 3.8,
+          duration: 2.5,
+          ease: "power4.inOut",
+          onUpdate
+      	});
+       	gsap.to(target, {
+          x: -0.003,
+          y: -0.4,
+          z: 0.41,
+          duration: 2.5,
+          ease: "power4.inOut"
+        });
+     })
+  };
+})
+
+</script>
+
+<script type="module">
+  // Page smooth scroll
+  import Lenis from "https://cdn.skypack.dev/@studio-freight/lenis@0.2.2";
+
+  const lenis = new Lenis({
+    duration: 1.2,
+    easing: (t) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t)), // https://easings.net
+    smooth: true,
+    direction: 'vertical',
+  })
+
+	// Required for Lenis to work.
+  function raf(time) {
+    lenis.raf(time)
+    requestAnimationFrame(raf)
+  }
+
+  // Webflow smooth scroll for anchor links doesn't play nice with Lenis
+  // at the moment. So this code uses a [data-target] attribute to get the
+  // clicked element target, and then animates the scroll using Lenis.scrollTo.
+  const scrollButtons = document.querySelectorAll('[data-target]');
+  scrollButtons.forEach(button => {
+    button.addEventListener('click', e => {
+      e.preventDefault();
+      var target = button.dataset.target,
+      	$el = document.getElementById(target.replace('#', ''));
+      lenis.scrollTo($el.offsetTop, {
+        offset: 0, 
+        immediate: false,
+        duration: 3,
+        easing: (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2), // https://easings.net
+			});
+    });
+  });
+
+	// Listens to the custom "scrollOff" event and turn Lenis off
+  document.body.addEventListener('scrollOff', () => {
+    lenis.stop();
+  });
+
+	// Listens to the custom "scrollOn" event and turn Lenis on
+	document.body.addEventListener('scrollOn', () => {
+    lenis.start();
+  });
+  requestAnimationFrame(raf)
+</script> -->
